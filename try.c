@@ -93,7 +93,7 @@ int main(void)
     int line_height = (int)((ascent - descent + lineGap) * scale);// some formula
     printf("line_height at 32px: %d\n", line_height);
     
-    int width = scale * 50, height = scale * 50;// creating a canvas
+    int width = 1000, height = 1000;// creating a canvas
     unsigned char *canvas = malloc(width * height);
     memset(canvas, 255, width * height);
 
@@ -118,7 +118,7 @@ int main(void)
         int x_topleft, y_topleft, x_bottomright, y_bottomright;
         stbtt_GetCodepointBitmapBox(&font, ch, scale, scale, &x_topleft, &y_topleft, &x_bottomright, &y_bottomright);
         int glyph_width = x_bottomright - x_topleft, glyph_height = y_bottomright - y_topleft;
-    
+        
         if (glyph_width > 0 && glyph_height > 0)
         {
             unsigned char *glyph = malloc(glyph_width * glyph_height);
