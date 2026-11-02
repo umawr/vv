@@ -12,7 +12,7 @@
 #include "stb_library/stb_truetype.h"
 int main(void)
 {
-    FILE *read_char = fopen("sample_in/try2.txt", "rb");//open txt file
+    FILE *read_char = fopen("sample_out/out10x.txt", "rb");//open txt file
     if (read_char == NULL)// fallback statement
     {
         printf("Error in reading .txt file\n");
@@ -32,12 +32,12 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    size_t text_read = fread(text_array, sizeof(char), number_of_char, read_char);//text_read tells the no. of bytes read from the file, freaad (pointer of memory(destination), size of individual element, no. of elements to read, the txt file)
+    size_t text_read = fread(text_array, sizeof(char), number_of_char, read_char);//text_read tells the no. of bytes read from the file, freaad (pointer to heap (destination), size of individual element, no. of elements to copy, the source .txt file)
     // above we are using fread to know the "true" size of the test array but not using it when malloc is because fread already needs the buffer (temp. storage) to exist
     text_array[text_read] = '\0'; // last elementof text_array is \0
     fclose(read_char);// close the txt file
 
-    printf("%s", text_array);// print the text in the .txt file
+    // printf("%s", text_array);// print the text in the .txt file
 
     FILE *font_file = fopen("arialfont.ttf", "rb");// open the .ttf file
     if (!font_file)// fallback statement
@@ -89,11 +89,11 @@ int main(void)
     stbtt_GetFontVMetrics(&font, &ascent, &descent, &lineGap);// store the variables
     printf("%d %d %d\n", ascent, descent, lineGap);
 
-    float scale = stbtt_ScaleForPixelHeight(&font, 32);// scale to 32px
+    float scale = stbtt_ScaleForPixelHeight(&font, 8);// scale to 32px
     int line_height = (int)((ascent - descent + lineGap) * scale);// some formula
     printf("line_height at 32px: %d\n", line_height);
     
-    int width = 32 * 50, height = 32 * 50;// creating a canvas
+    int width = scale * 50, height = scale * 50;// creating a canvas
     unsigned char *canvas = malloc(width * height);
     memset(canvas, 255, width * height);
 
@@ -115,23 +115,23 @@ int main(void)
             continue;
         }
     
-        int x0, y0, x1, y1;
-        stbtt_GetCodepointBitmapBox(&font, ch, scale, scale, &x0, &y0, &x1, &y1);
-        int gw = x1 - x0, gh = y1 - y0;
+        int x_topleft, y_topleft, x_bottomright, y_bottomright;
+        stbtt_GetCodepointBitmapBox(&font, ch, scale, scale, &x_topleft, &y_topleft, &x_bottomright, &y_bottomright);
+        int glyph_width = x_bottomright - x_topleft, glyph_height = y_bottomright - y_topleft;
     
-        if (gw > 0 && gh > 0)
+        if (glyph_width > 0 && glyph_height > 0)
         {
-            unsigned char *glyph = malloc(gw * gh);
-            stbtt_MakeCodepointBitmap(&font, glyph, gw, gh, gw, scale, scale, ch);
+            unsigned char *glyph = malloc(glyph_width * glyph_height);
+            stbtt_MakeCodepointBitmap(&font, glyph, glyph_width, glyph_height, glyph_width, scale, scale, ch);
     
-            for (int gy = 0; gy < gh; gy++)
+            for (int gy = 0; gy < glyph_height; gy++)
             {
-                for (int gx = 0; gx < gw; gx++) 
+                for (int gx = 0; gx < glyph_width; gx++) 
                 {
-                    int cx = x + x0 + gx;
-                    int cy = baseline + y0 + gy;
+                    int cx = x + x_topleft + gx;
+                    int cy = baseline + y_topleft + gy;
                     if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
-                    canvas[cy * width + cx] = 255 - glyph[gy * gw + gx];
+                    canvas[cy * width + cx] = 255 - glyph[gy * glyph_width + gx];
                 }
             }
             free(glyph);
