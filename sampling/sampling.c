@@ -22,7 +22,7 @@ int ramp_size = (sizeof(ramp)/sizeof(char));
 
 void sampling_printer(float lumin)
 {
-    file_pointer = fopen("sample_out/out.txt", "a");
+    file_pointer = fopen("sample_out/sample_apple100x.txt", "a");
     if (line_counter == new_width)
     {
         fprintf(file_pointer, "\n");
