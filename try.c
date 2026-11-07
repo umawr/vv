@@ -61,7 +61,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    size_t got = fread(font_data, 1, font_size, font_file);// got tells the size of font_file
+    size_t got = fread(font_data, sizeof(char), font_size, font_file);// got tells the size of font_file
     fclose(font_file);// close the font_file
     printf("bytes read: %zu\n", got);// bytes of the font_file
 
@@ -74,9 +74,9 @@ int main(void)
     }
 
     stbtt_fontinfo font;// font is a struct that stores info about the font
-    int offset = stbtt_GetFontOffsetForIndex(font_data, 0);// no idea
-    int ok = stbtt_InitFont(&font, font_data, offset);// no idea
-    printf("InitFont: %d\n", ok);// no idea
+    int offset = stbtt_GetFontOffsetForIndex(font_data, 0);// searches the font data for a font bcz some .ttf files have multiple variations of the same font
+    int ok = stbtt_InitFont(&font, font_data, offset);// initializes font structure
+    printf("InitFont: %d\n", ok);// 
 
     if (!ok) // fallback statement
     {
@@ -89,23 +89,22 @@ int main(void)
     stbtt_GetFontVMetrics(&font, &ascent, &descent, &lineGap);// store the variables
     printf("%d %d %d\n", ascent, descent, lineGap);
 
-    float scale = stbtt_ScaleForPixelHeight(&font, 8);// scale to 32px
+    float scale = stbtt_ScaleForPixelHeight(&font, 8);// scale to 8px
     int line_height = (int)((ascent - descent + lineGap) * scale);// some formula
     printf("line_height at 32px: %d\n", line_height);
     
-    int width = 1000, height = 1000;// creating a canvas
-    unsigned char *canvas = malloc(width * height);
-    memset(canvas, 255, width * height);
+    int width = 1000, height = 1000;// dimensions of the canvas
+    unsigned char *canvas = malloc(width * height); // allocate memory for the canvas
+    memset(canvas, 155, width * height);// set all the bytes of the canvas array to 155(grey)
 
     int from_left = 20;
     int from_top = 20;
     
     int x = from_left;
-    int baseline = from_top + (int)(ascent * scale);
+    int baseline = from_top + (int)(ascent * scale); // idk
     // int line_height = (int)((ascent - descent + lineGap) * scale);
     
-    for (int i = 0; i < number_of_char; i++)
-    {
+    for (int i = 0; i < number_of_char; i++)// processes every char in the txt    {
         int ch = (unsigned char)text_array[i];
     
         if (ch == '\n')
@@ -124,9 +123,9 @@ int main(void)
             unsigned char *glyph = malloc(glyph_width * glyph_height);
             stbtt_MakeCodepointBitmap(&font, glyph, glyph_width, glyph_height, glyph_width, scale, scale, ch);
     
-            for (int gy = 0; gy < glyph_height; gy++)
+            for (int gy = 0; gy < glyph_height; gy++)// processes every row of a character's bitmap
             {
-                for (int gx = 0; gx < glyph_width; gx++) 
+                for (int gx = 0; gx < glyph_width; gx++) // processes every pixel in that row
                 {
                     int cx = x + x_topleft + gx;
                     int cy = baseline + y_topleft + gy;
