@@ -13,7 +13,7 @@
 
 int main(void)
 {
-  FILE *read_char = fopen("sample_out/out.txt", "rb"); //open txt file
+  FILE *read_char = fopen("sample_out/out10x.txt", "rb"); //open txt file
   if (read_char == NULL) // fallback statement
   {
     printf("Error in reading .txt file\n");
@@ -89,7 +89,7 @@ int main(void)
   stbtt_GetFontVMetrics(&font, &ascent, &descent, &lineGap); // store the variables
   printf("%d %d %d\n", ascent, descent, lineGap);
 
-  float scale = stbtt_ScaleForPixelHeight(&font, 32.0f); // scale to 32px for better readability
+  float scale = stbtt_ScaleForPixelHeight(&font, 16); // scale to 32px for better readability
   int line_height = (int)((ascent - descent + lineGap) * scale); // some formula for line height
   printf("line_height at 32px: %d\n", line_height);
   
@@ -127,6 +127,7 @@ int main(void)
     // glyph is the "design" of the character, like the letter "u" might means the same but has a different "design" in various font styles
     // bitmap is the array of bits that represent that particular character's glyph 
     // offset is a particular variant of font ...ig
+    // row stride is the distance (bytes) the pointer has to move to print a new character ig..
   
     int x_topleft, y_topleft, x_bottomright, y_bottomright;
     stbtt_GetCodepointBitmapBox(&font, ch, scale, scale, &x_topleft, &y_topleft, &x_bottomright, &y_bottomright);// calculates the rectangular boundary of a particular character, only tells the dimensions and offsets of the bitmap
@@ -134,23 +135,25 @@ int main(void)
     int glyph_width = x_bottomright - x_topleft;// width of the glyph
     int glyph_height = y_bottomright - y_topleft;// height of the glyph
     
-      if (glyph_width > 0 && glyph_height > 0)
+    if (glyph_width > 0 && glyph_height > 0)
     {
       unsigned char *glyph = malloc(glyph_width * glyph_height);// area of the glyph
       if (glyph)
       {
         stbtt_MakeCodepointBitmap(&font, glyph, glyph_width, glyph_height, glyph_width, scale, scale, ch);
         // font info | memory where bitmap pixels will be stored | bitmap width | bitmap height | row stride (no. of bytes to move)?? | horizontal scale | vertical scale | character to render 
-        for (int gy = 0; gy < glyph_height; gy++) // processes every row of a character's bitmap
+        for (int glyph_y = 0; glyph_y < glyph_height; glyph_y++) // processes every row of a character's bitmap
+        // glyph_y iterates through every row of the character's bitmap, so vertically-y
         {
-          for (int gx = 0; gx < glyph_width; gx++) // processes every pixel in that row
+          for (int glyph_x = 0; glyph_x < glyph_width; glyph_x++) // processes every pixel in that row
+          // glyph_x iterates through every column of the character's bitmap, so horizontally-x
           {
-            int cx = x + x_topleft + gx;
-            int cy = baseline + y_topleft + gy;
-            if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
+            // core logic -
+            int cx = x + x_topleft + glyph_x; // current horizontal position + default horizontal margin from the left + current horizontal position from inside the glyph (..????)
+            int cy = baseline + y_topleft + glyph_y; // vertical position of the characters baseline + vertical offset of the glyph + current pixel's vertical position 
+            if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;// if this condition is met, continue with the next iteration
             
-            // Alpha blending for black text on a white canvas
-            unsigned char g = glyph[gy * glyph_width + gx];
+            unsigned char g = glyph[glyph_y * glyph_width + glyph_x];//  glyph is an array that contains the glyph's pixel data
             unsigned char existing = canvas[cy * width + cx];
             canvas[cy * width + cx] = (255 - g) * g / 255 + existing * (255 - g) / 255;
           }
