@@ -130,7 +130,8 @@ int main(void)
     // row stride is the distance (bytes) the pointer has to move to print a new character ig..
   
     int x_topleft, y_topleft, x_bottomright, y_bottomright;
-    stbtt_GetCodepointBitmapBox(&font, ch, scale, scale, &x_topleft, &y_topleft, &x_bottomright, &y_bottomright);// calculates the rectangular boundary of a particular character, only tells the dimensions and offsets of the bitmap
+    stbtt_GetCodepointBitmapBox(&font, ch, scale, scale, &x_topleft, &y_topleft, &x_bottomright, &y_bottomright);
+    // calculates the rectangular boundary of a particular character, only tells the dimensions and offsets of the bitmap
     // &font initialized font | ch character to render | scale horizontal scaling | scale vertical scaling | &x_topleft left boundary output | &y_topleft top boundary output | &x_bottomright right boundary output | &y_bottomright bottom boundary output |
     int glyph_width = x_bottomright - x_topleft;// width of the glyph
     int glyph_height = y_bottomright - y_topleft;// height of the glyph
