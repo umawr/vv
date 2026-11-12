@@ -56,11 +56,10 @@ int copy_file(long text_file_size, FILE *file_pointer)
 
 unsigned char * read_ttf(FILE *font_file)
 {
-  // FILE *font_file = fopen("arialfont.ttf", "rb");
   if (!font_file)
   {
     printf("Could not open the font file\n");
-    // return EXIT_FAILURE;
+    return NULL;
   }
   fseek(font_file, 0, SEEK_END);
   long font_file_size = ftell(font_file);
@@ -71,12 +70,11 @@ unsigned char * read_ttf(FILE *font_file)
   {
     printf("Memory allocation failed for font\n");
     fclose(font_file);
-    // return EXIT_FAILURE;
+    return NULL;
   }
   size_t got = fread(font_data, sizeof(char), font_file_size, font_file);
   // fread needs the buffer font_data to already exist in RAM when it rads the .ttf file into  memory
   fclose(font_file);
-  // print_img(font_data);
   return font_data;
 }
 
@@ -84,6 +82,7 @@ int print_img(unsigned char *font_data)
 {
      stbtt_fontinfo font;
      stbtt_InitFont(&font, font_data, stbtt_GetFontOffsetForIndex(font_data, 0));
+     // stbtt_fontinfo is a custom struct (data type)
 
      // Generate bitmap of character A
      int width, height, x_offset, y_offset;
@@ -108,4 +107,3 @@ int print_img(unsigned char *font_data)
      printf("Saved letter_A.png (%d x %d)\n", width, height);
   return 0;
 }
-
