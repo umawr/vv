@@ -80,30 +80,65 @@ unsigned char * read_ttf(FILE *font_file)
 
 int print_img(unsigned char *font_data)
 {
-     stbtt_fontinfo font;
-     stbtt_InitFont(&font, font_data, stbtt_GetFontOffsetForIndex(font_data, 0));
-     // stbtt_fontinfo is a custom struct (data type)
+    stbtt_fontinfo font;
+    // overhere it defines font as a struct (data type), "stbtt_fontinfo" is a custom struct data type
+    stbtt_InitFont(&font, font_data, stbtt_GetFontOffsetForIndex(font_data, 0));
+    //(address of the empty font info struct, pointer to the font file, finds the offset of the font (font file pointer, 0th (1st) font of that font file))
 
-     // Generate bitmap of character A
-     int width, height, x_offset, y_offset;
-
-     unsigned char *bitmap = stbtt_GetCodepointBitmap(
-         &font,
-         0,
-         stbtt_ScaleForPixelHeight(&font, 200),
-         'A',
-         &width,
-         &height,
-         &x_offset,
-         &y_offset
-     );
-
-     // Save bitmap as PNG
-     stbi_write_png("letter_A.png", width, height, 1, bitmap, width);
-
-     // Cleanup
-     stbtt_FreeBitmap(bitmap, NULL);
-     free(font_data);
-     printf("Saved letter_A.png (%d x %d)\n", width, height);
-  return 0;
+    // width of A bitmap, height of bitmap A, horizontal and vertical offset of the glyph relative to its origin
+    char rack[] = {'a', 'b', 'c'};
+    int number_of_char = sizeof(rack)/sizeof(char);
+    printf("No. of letters %d\n", number_of_char);
+    
+    // CHANGED: canvas size now has its own variables that nothing else overwrites
+    int canvas_width  = number_of_char * 300;
+    int canvas_height = 300;
+    
+    // CHANGED: separate variables to receive the glyph's size
+    int glyph_w, glyph_h;
+    int x_offset, y_offset;
+    
+    unsigned char *canvas = malloc(canvas_width * canvas_height);
+    for (int i = 0; i < canvas_width * canvas_height; i++)
+        canvas[i] = 255;
+    
+    unsigned char *bitmap;
+    for (int g = 0; g < number_of_char; g++)
+    {
+        bitmap = stbtt_GetCodepointBitmap(
+            &font,
+            0,
+            stbtt_ScaleForPixelHeight(&font, 200),
+            rack[g],
+            &glyph_w,      // CHANGED: was &width
+            &glyph_h,      // CHANGED: was &height
+            &x_offset,
+            &y_offset
+        );
+    
+        // (copying the glyph into the canvas would go here, using glyph_w / glyph_h)
+    
+        // CHANGED: uses the canvas dimensions, and the stride is the canvas width
+        stbi_write_png("output.png", canvas_width, canvas_height, 1, canvas, canvas_width);
+    
+        stbtt_FreeBitmap(bitmap, NULL);   // ADDED: bitmap was leaking each iteration
+    }
+    free(canvas);
+    printf("%d\n", *(bitmap + 10000));
+     
+    stbtt_FreeBitmap(bitmap, NULL);
+    free(font_data);
+    printf("Saved letter_A.png (%d x %d)\n", canvas_width, canvas_height);
+    return 0;
 }
+
+     // free(rgb);
+     // stbi_write_png("letter_A.png", width, height, 3, rgb, width * 3);
+     // unsigned char *rgb = malloc(width * height * 3);
+     // // increase channels to 3
+     // for (int i = 0; i < width * height; i++)
+     // {
+     //     rgb[i * 3]     = bitmap[i]; // Red
+     //     rgb[i * 3 + 1] = bitmap[i]; // Green
+     //     rgb[i * 3 + 2] = bitmap[i]; // Blue
+     // }
