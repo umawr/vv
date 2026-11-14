@@ -11,170 +11,148 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_library/stb_truetype.h"
 
-int main(void)
+int print_img(unsigned char *font_data);
+unsigned char * read_ttf(FILE *font_file);
+int copy_file(long text_file_size, FILE *file_pointer);
+long find_file_size(FILE *file_pointer);
+
+int main()
 {
-  FILE *read_char = fopen("sample_out/out10x.txt", "rb"); //open txt file
-  if (read_char == NULL) // fallback statement
+  FILE *file_pointer = fopen("again.txt", "rb");
+  long text_file_size = find_file_size(file_pointer);
+  copy_file(text_file_size, file_pointer);
+  FILE *font_file = fopen("arialfont.ttf", "rb");
+  unsigned char * font_data = read_ttf(font_file);
+  print_img(font_data);
+  return 0;
+}
+
+long find_file_size(FILE *file_pointer)
+{
+  if (file_pointer == NULL)
   {
     printf("Error in reading .txt file\n");
     return EXIT_FAILURE;
   }
+  fseek(file_pointer, 0, SEEK_END);
+  long text_file_size = ftell(file_pointer);
+  rewind(file_pointer);
+  return text_file_size;
+}
 
-  fseek(read_char, 0, SEEK_END); // point read_char to the end the .txt file
-  long number_of_char = ftell(read_char); // store the last value of the file in number_of_char
-  rewind(read_char); // point read_char to the begining of the file
-  printf("Number of characters: %ld\n", number_of_char); // print number_of_char in .txt file
-
-  char *text_array = malloc(number_of_char + 1); // allocate memory to store the txt file in heap that + 1 is for the \0 char
-  if (text_array == NULL) // fallback statement
+int copy_file(long text_file_size, FILE *file_pointer)
+{
+  char *text_array = malloc(text_file_size + 1);
+  if (text_array == NULL)
   {
     printf("Memory allocation failed for text\n");
-    fclose(read_char);
+    fclose(file_pointer);
     return EXIT_FAILURE;
   }
+  size_t text_read = fread(text_array, sizeof(char), text_file_size, file_pointer);
+  fclose(file_pointer);
+  return 0;
+}
 
-  size_t text_read = fread(text_array, sizeof(char), number_of_char, read_char); //text_read tells the no. of bytes read from the file
-  text_array[text_read] = '\0'; // last element of text_array is \0
-  fclose(read_char); // close the txt file
-
-  // printf("%s", text_array);// print the text in the .txt file
-
-  FILE *font_file = fopen("arialfont.ttf", "rb"); // open the .ttf file
-  if (!font_file) // fallback statement
+unsigned char * read_ttf(FILE *font_file)
+{
+  if (!font_file)
   {
     printf("Could not open the font file\n");
-    free(text_array);
-    return EXIT_FAILURE;
+    return NULL;
   }
-
-  fseek(font_file, 0, SEEK_END); // go to end of font_file
-  long font_size = ftell(font_file); // saves the current (which is the last) position of font_file to font_size
-  fseek(font_file, 0, SEEK_SET); // resets the position of font_file to the start
-  printf("\nsize of arialfont.ttf in bytes %ld\n", font_size); // print size of .ttf file
-
-  unsigned char *font_data = malloc(font_size); // allocate memory (size of font_file / value of font_size) for the .ttf file in heap
-  if (font_data == NULL) // fallback statement
+  fseek(font_file, 0, SEEK_END);
+  long font_file_size = ftell(font_file);
+  rewind(font_file);
+  printf("size of arialfont.ttf in bytes %ld\n", font_file_size);
+  unsigned char *font_data = malloc(font_file_size);
+  if (font_data == NULL)
   {
     printf("Memory allocation failed for font\n");
     fclose(font_file);
-    free(text_array);
-    return EXIT_FAILURE;
+    return NULL;
   }
+  size_t got = fread(font_data, sizeof(char), font_file_size, font_file);
+  // fread needs the buffer font_data to already exist in RAM when it rads the .ttf file into  memory
+  fclose(font_file);
+  return font_data;
+}
 
-  size_t got = fread(font_data, sizeof(char), font_size, font_file); // got tells the size of font_file read
-  fclose(font_file); // close the font_file
-  printf("bytes read: %zu\n", got); // bytes of the font_file
+int print_img(unsigned char *font_data)
+{
+    stbtt_fontinfo font;
+    // overhere it defines font as a struct (data type), "stbtt_fontinfo" is a custom struct data type
+    stbtt_InitFont(&font, font_data, stbtt_GetFontOffsetForIndex(font_data, 0));
+    //(address of the empty font info struct, pointer to the font file, finds the offset of the font (font file pointer, 0th (1st) font of that font file))
 
-  if (got != (size_t)font_size) // fallback statement
-  {
-    printf("Short read on font file\n");
-    free(font_data);
-    free(text_array);
-    return EXIT_FAILURE;
-  }
-
-  stbtt_fontinfo font; // font is a struct that stores info about the font idk
-  int offset = stbtt_GetFontOffsetForIndex(font_data, 0); // searches the font data for a font bcz some .ttf files have multiple variations of the same font
-  int ok = stbtt_InitFont(&font, font_data, offset); // initializes font structure
-  printf("InitFont: %d\n", ok); 
-
-  if (!ok) // fallback statement
-  {
-    free(font_data);
-    free(text_array);
-    return EXIT_FAILURE;
-  }
-
-  int ascent, descent, lineGap;
-  stbtt_GetFontVMetrics(&font, &ascent, &descent, &lineGap); // store the variables
-  printf("%d %d %d\n", ascent, descent, lineGap);
-
-  float scale = stbtt_ScaleForPixelHeight(&font, 16); // scale to 32px for better readability
-  int line_height = (int)((ascent - descent + lineGap) * scale); // some formula for line height
-  printf("line_height at 32px: %d\n", line_height);
-  
-  int width = 1000, height = 1000; // dimensions of the canvas
-  unsigned char *canvas = malloc(width * height); // allocate memory for the canvas
-  if (canvas == NULL)
-  {
-    printf("Memory allocation failed for canvas\n");
-    free(font_data);
-    free(text_array);
-    return EXIT_FAILURE;
-  }
-  
-  memset(canvas, 255, width * height); // set all the bytes of the canvas array to 255 (white background)
-
-  int from_left = 20;
-  int from_top = 40;
-  
-  int x = from_left; // current horizontal position like (20, 0)
-  int baseline = from_top + (int)(ascent * scale); // baseline calculation idk ???
-  
-  for (int i = 0; i < number_of_char; i++) // processes every char in the txt
-  {
-    int ch = (unsigned char)text_array[i]; // gets the first element from the text_array
-  
-    // if (ch == '\r') continue;
-
-    if (ch == '\n')
-    {
-      x = from_left;// at the left position (20, 0)
-      baseline += line_height;// switch to a newline
-      continue;
-    }
-
-    // glyph is the "design" of the character, like the letter "u" might means the same but has a different "design" in various font styles
-    // bitmap is the array of bits that represent that particular character's glyph 
-    // offset is a particular variant of font ...ig
-    // row stride is the distance (bytes) the pointer has to move to print a new character ig..
-  
-    int x_topleft, y_topleft, x_bottomright, y_bottomright;
-    stbtt_GetCodepointBitmapBox(&font, ch, scale, scale, &x_topleft, &y_topleft, &x_bottomright, &y_bottomright);
-    // calculates the rectangular boundary of a particular character, only tells the dimensions and offsets of the bitmap
-    // &font initialized font | ch character to render | scale horizontal scaling | scale vertical scaling | &x_topleft left boundary output | &y_topleft top boundary output | &x_bottomright right boundary output | &y_bottomright bottom boundary output |
-    int glyph_width = x_bottomright - x_topleft;// width of the glyph
-    int glyph_height = y_bottomright - y_topleft;// height of the glyph
+    char rack[] = "ozymandias";
+    int n = sizeof(rack) / sizeof(char);
+    printf("%d\n", n);
     
-    if (glyph_width > 0 && glyph_height > 0)
+    int canvas_width  = 900;                 // change this later to something dynamic
+    int canvas_height = 300;
+    int cell_w = canvas_width / n;
+    int cell_h = canvas_height;
+    
+    unsigned char *canvas = malloc(canvas_width * canvas_height);
+    for (int i = 0; i < canvas_width * canvas_height; i++)
+        canvas[i] = 255;
+    
+    // find scale 
+    float scale = 1e9f;
+    int min_y0 = 1e9, max_y1 = -1e9;
+    printf("writing %d x %d\n", canvas_width, canvas_height);
+    for (int g = 0; g < n; g++)
     {
-      unsigned char *glyph = malloc(glyph_width * glyph_height);// area of the glyph
-      if (glyph)
-      {
-        stbtt_MakeCodepointBitmap(&font, glyph, glyph_width, glyph_height, glyph_width, scale, scale, ch);
-        // font info | memory where bitmap pixels will be stored | bitmap width | bitmap height | row stride (no. of bytes to move)?? | horizontal scale | vertical scale | character to render 
-        for (int glyph_y = 0; glyph_y < glyph_height; glyph_y++) // processes every row of a character's bitmap
-        // glyph_y iterates through every row of the character's bitmap, so vertically-y
-        {
-          for (int glyph_x = 0; glyph_x < glyph_width; glyph_x++) // processes every pixel in that row
-          // glyph_x iterates through every column of the character's bitmap, so horizontally-x
-          {
-            // core logic -
-            int cx = x + x_topleft + glyph_x; // current horizontal position + default horizontal margin from the left + current horizontal position from inside the glyph (..????)
-            int cy = baseline + y_topleft + glyph_y; // vertical position of the characters baseline + vertical offset of the glyph + current pixel's vertical position 
-            if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;// if this condition is met, continue with the next iteration
-            
-            unsigned char g = glyph[glyph_y * glyph_width + glyph_x];//  glyph is an array that contains the glyph's pixel data
-            unsigned char existing = canvas[cy * width + cx];
-            canvas[cy * width + cx] = (255 - g) * g / 255 + existing * (255 - g) / 255;
-          }
-        }
-        free(glyph);
-      }
+        int x0, y0, x1, y1;
+        stbtt_GetCodepointBox(&font, rack[g], &x0, &y0, &x1, &y1);
+    
+        float sx = (cell_w * 0.9f) / (x1 - x0);  // scale at which this letter's width fills the cell (x1 - x0) is glyph width
+        float sy = (cell_h * 0.9f) / (y1 - y0);  // scale at which this letter's height fills the cell (x1 - x0) is glyph height
+        float s  = (sx < sy ? sx : sy);
+        if (s < scale) scale = s;
+    
+        if (y0 < min_y0) min_y0 = y0;
+        if (y1 > max_y1) max_y1 = y1;
     }
-  
-    int advance, lsb;
-    stbtt_GetCodepointHMetrics(&font, ch, &advance, &lsb);
-    x += (int)(advance * scale);
-  }
-  
-  // after the loop (done once)
-  stbi_write_png("output3.png", width, height, 1, canvas, width);
-  printf("Successfully generated output3.png!\n");
-
-  // free heap memory
-  free(canvas);
-  free(font_data);
-  free(text_array);
-  return 0;
+    
+    // 2. Put the shared baseline so the tallest/lowest letters are centered vertically
+    float total_h   = (max_y1 - min_y0) * scale;
+    int   baseline  = (int)((canvas_height - total_h) / 2 + max_y1 * scale);
+    
+    // 3. Render each letter and copy it into its own cell, centered horizontally
+    for (int g = 0; g < n; g++)
+    {
+        int glyph_w, glyph_h, x_offset, y_offset;
+        unsigned char *bitmap = stbtt_GetCodepointBitmap(
+            &font, 0, scale, rack[g], &glyph_w, &glyph_h, &x_offset, &y_offset);
+    
+        int start_x = g * cell_w + (cell_w - glyph_w) / 2;
+        int start_y = baseline + y_offset;
+    
+        for (int y = 0; y < glyph_h; y++)
+            for (int x = 0; x < glyph_w; x++)
+            {
+                int cx = start_x + x;
+                int cy = start_y + y;
+                if (cx < 0 || cx >= canvas_width || cy < 0 || cy >= canvas_height)
+                    continue;
+                canvas[cy * canvas_width + cx] = 255 - bitmap[y * glyph_w + x];
+            }
+    
+        stbtt_FreeBitmap(bitmap, NULL);
+    }
+    
+    if (!stbi_write_png("output.png", canvas_width, canvas_height, 1, canvas, canvas_width))
+        printf("PNG write FAILED\n");
+    else
+        printf("PNG write was successful\n");
+    
+    stbi_write_png("outp1ut.png", canvas_width, canvas_height, 1, canvas, canvas_width);
+    // free(canvas);    printf("%d\n", *(bitmap + 10000));
+     
+    // stbtt_FreeBitmap(bitmap, NULL);
+    free(font_data);
+    printf("Saved letter_A.png (%d x %d)\n", canvas_width, canvas_height);
+    return 0;
 }
